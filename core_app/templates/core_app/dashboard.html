@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Expense Tracker Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    </head>
+<body>
+    <header>
+        <h1>Welcome, {{ current_user.username }}!</h1>
+        <p>
+            <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" style="background:none; border:none; padding:0; color:inherit; cursor:pointer;">Logout</button>
+        </form>
+            | <a href="{% url 'admin:index' %}">Admin</a>
+        </p>
+    </header>
+
+    <hr>
+
+    <h2> Add New Expense</h2>
+    <form method="post" action="{% url 'add_expense' %}">
+        {% csrf_token %}
+        {{ form.as_p }} <button type="submit">Submit Expense</button>
+    </form>
+
+    <hr>
+
+    <h2>📋 Your Expenses ({{ expenses|length }})</h2>
+    {% if expenses %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                    <tr>
+                        <td>{{ expense.date }}</td>
+                        <td>{{ expense.category }}</td>
+                        <td>{{ expense.description }}</td>
+                        <td>₹{{ expense.amount }}</td> 
+                        <td>
+                          <form method="post" action="{% url 'delete_expense' expense.id %}" style="display:inline;">
+                             {% csrf_token %}
+                            <button type="submit">Delete</button>
+                        </form>
+                     </td>
+                    </tr>>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have no expenses recorded yet. Start by adding one above!</p>
+    {% endif %}
+
+   <hr>
+
+    <h2> Expense Visualization</h2>
+    <p>This chart shows your total spending grouped by month.</p>
+    <div id="chart-container">
+        {{ expense_chart|safe }} 
+        </div>
+
+    <hr>
+
+    <h2> Filter Expenses</h2>
+    <form method="get" action="{% url 'dashboard' %}">
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" value="{{ start_date|default_if_none:'' }}">
+
+        <label for="end_date">End Date:</label> 
+        <input type="date" id="end_date" name="end_date" value="{{ end_date|default_if_none:'' }}">
+
+        <button type="submit">Apply Filter</button>
+        <a href="{% url 'dashboard' %}"><button type="button">Clear Filter</button></a>
+    </form>
+
+    <hr>
+
+</body>
+</html>
