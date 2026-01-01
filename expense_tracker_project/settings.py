@@ -30,11 +30,12 @@ DEBUG = True
 
 import os
 
-ALLOWED_HOSTS = [
-    "web-production-393e.up.railway.app",
-    "127.0.0.1",
-    "localhost",
+ALLOWED_HOSTS = ["web-production-393e.up.railway.app", "127.0.0.1", "localhost"]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://web-production-393e.up.railway.app",
 ]
+
 
 
 
