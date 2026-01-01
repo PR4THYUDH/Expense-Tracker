@@ -2,4 +2,4 @@
 builder = "RAILPACK"
 
 [deploy]
-startCommand = "python manage.py createsuperuser --noinput && gunicorn expense_tracker_project.wsgi"
+startCommand = "python manage.py migrate && python manage.py createsuperuser --noinput && gunicorn expense_tracker_project.wsgi"
