@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy & Security Architecture — FinTrack AI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 sm:py-12">
+    <div class="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 shadow-sm">
+        
+        <div class="border-b border-slate-200 pb-6 mb-8">
+            <span class="text-xs font-bold uppercase tracking-wider text-brand-600">Architecture & Transparency</span>
+            <h1 class="text-3xl font-extrabold text-slate-900 mt-2">Privacy & Data Handling Policy</h1>
+            <p class="text-sm text-slate-500 mt-2">Effective date: 2026. Explicit breakdown of data storage, user isolation, and Claude AI API processing.</p>
+        </div>
+
+        <div class="space-y-8 text-sm text-slate-700 leading-relaxed">
+            
+            <section>
+                <h2 class="text-lg font-bold text-slate-900 mb-2">1. Data Storage & Multi-Tenant Isolation</h2>
+                <p>
+                    All expense records, budget allocations, and user profiles are stored in an encrypted relational database (PostgreSQL in production, SQLite in local development). Every database query is strictly parameterized and filtered by the authenticated user's ID (<code>request.user</code>).
+                </p>
+                <p class="mt-2 text-slate-600 font-medium">
+                    Users cannot access, modify, delete, or export any other user's financial records through URL manipulation, form tampering, or direct query alteration.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-bold text-slate-900 mb-2">2. How Anthropic Claude AI is Used</h2>
+                <p>FinTrack AI employs the Anthropic Claude API for three distinct, opt-in assistance capabilities:</p>
+                <ul class="list-disc list-inside mt-2 space-y-2 text-slate-600 ml-2">
+                    <li><strong>Receipt Scanning:</strong> When you upload a receipt photo, the image is transmitted directly to Claude's multimodal vision API over encrypted TLS connections solely to extract merchant, date, amounts, and items. The extracted fields are presented for your explicit review and editing before anything is saved.</li>
+                    <li><strong>Spending Insights:</strong> To generate advisory insights, our backend aggregates high-level monthly totals and category percentages. We never transmit bank account numbers, passwords, or personal identity numbers.</li>
+                    <li><strong>Natural Language Questions ("Ask AI"):</strong> When you submit a question, pre-calculated, verified statistics from your account are injected into the prompt. <em>Claude is never given direct or raw SQL execution permissions to your database.</em></li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-bold text-slate-900 mb-2">3. Data Retention & Third-Party Sharing</h2>
+                <p>
+                    We do not sell, rent, or monetize your financial information or transaction records to third parties or advertising brokers. Data sent to the Anthropic API is processed in accordance with Anthropic's Commercial Terms of Service and data privacy policies.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-bold text-slate-900 mb-2">4. User Best Practices</h2>
+                <p>
+                    We recommend that users redact sensitive personal identification numbers (e.g., PAN, Aadhaar, SSN) before uploading receipts or adding transaction notes.
+                </p>
+            </section>
+
+            <section class="pt-6 border-t border-slate-200 flex justify-between items-center">
+                <a href="{% url 'dashboard' %}" class="text-sm font-semibold text-brand-600 hover:text-brand-700">
+                    &larr; Return to Dashboard
+                </a>
+                <span class="text-xs text-slate-400">FinTrack AI Platform</span>
+            </section>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

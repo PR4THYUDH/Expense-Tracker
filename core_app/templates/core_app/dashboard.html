@@ -1,89 +1,734 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Expense Tracker Dashboard</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    </head>
-<body>
-    <header>
-        <h1>Welcome, {{ current_user.username }}!</h1>
-        <p>
-            <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" style="background:none; border:none; padding:0; color:inherit; cursor:pointer;">Logout</button>
-        </form>
-            | <a href="{% url 'admin:index' %}">Admin</a>
-        </p>
-    </header>
+{% extends "base.html" %}
 
-    <hr>
+{% block title %}Dashboard — FinTrack AI{% endblock %}
 
-    <h2> Add New Expense</h2>
-    <form method="post" action="{% url 'add_expense' %}">
-        {% csrf_token %}
-        {{ form.as_p }} <button type="submit">Submit Expense</button>
-    </form>
+{% block content %}
+<div class="space-y-6">
 
-    <hr>
-
-    <h2>📋 Your Expenses ({{ expenses|length }})</h2>
-    {% if expenses %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for expense in expenses %}
-                    <tr>
-                        <td>{{ expense.date }}</td>
-                        <td>{{ expense.category }}</td>
-                        <td>{{ expense.description }}</td>
-                        <td>₹{{ expense.amount }}</td> 
-                        <td>
-                          <form method="post" action="{% url 'delete_expense' expense.id %}" style="display:inline;">
-                             {% csrf_token %}
-                            <button type="submit">Delete</button>
-                        </form>
-                     </td>
-                    </tr>>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>You have no expenses recorded yet. Start by adding one above!</p>
-    {% endif %}
-
-   <hr>
-
-    <h2> Expense Visualization</h2>
-    <p>This chart shows your total spending grouped by month.</p>
-    <div id="chart-container">
-        {{ expense_chart|safe }} 
+    <!-- Dashboard Header & Top Actions -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Financial Overview</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Tracking expenses for <strong class="text-slate-700">{{ user.username }}</strong> &bull; Period: {{ current_month }} {{ current_year }}
+            </p>
         </div>
 
-    <hr>
+        <!-- Quick Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Add Expense Button -->
+            <button onclick="openModal('addExpenseModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-sm shadow-brand-500/25 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Add Expense
+            </button>
 
-    <h2> Filter Expenses</h2>
-    <form method="get" action="{% url 'dashboard' %}">
-        <label for="start_date">Start Date:</label>
-        <input type="date" id="start_date" name="start_date" value="{{ start_date|default_if_none:'' }}">
+            <!-- Import Receipt (Claude Vision) Button -->
+            <button onclick="openModal('receiptModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-brand-700 font-semibold text-xs border border-indigo-200 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Import Receipt (AI)
+            </button>
 
-        <label for="end_date">End Date:</label> 
-        <input type="date" id="end_date" name="end_date" value="{{ end_date|default_if_none:'' }}">
+            <!-- Ask AI Button -->
+            <button onclick="openModal('askAiModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs border border-purple-200 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                Ask Claude
+            </button>
 
-        <button type="submit">Apply Filter</button>
-        <a href="{% url 'dashboard' %}"><button type="button">Clear Filter</button></a>
-    </form>
+            <!-- Set Budget Button -->
+            <button onclick="openModal('budgetModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Set Budget
+            </button>
 
-    <hr>
+            <!-- Export CSV Button -->
+            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&search={{ search_query }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export CSV
+            </a>
+        </div>
+    </div>
 
-</body>
-</html>
+    <!-- TOP KPI CARDS (Step 4) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        <!-- Total Spend -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Lifetime Spend</span>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2">₹{{ kpis.total_lifetime|floatformat:2 }}</div>
+            <div class="text-[11px] text-slate-400 mt-1">Across all recorded dates</div>
+        </div>
+
+        <!-- This Month -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">This Month</span>
+            <div class="text-2xl font-extrabold text-brand-600 mt-2">₹{{ kpis.this_month_total|floatformat:2 }}</div>
+            <div class="text-[11px] text-slate-400 mt-1">{{ current_month }} {{ current_year }}</div>
+        </div>
+
+        <!-- Previous Month -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Previous Month</span>
+            <div class="text-2xl font-extrabold text-slate-700 mt-2">₹{{ kpis.prev_month_total|floatformat:2 }}</div>
+            <div class="text-[11px] text-slate-400 mt-1">Comparison benchmark</div>
+        </div>
+
+        <!-- MoM Percentage Change -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Month-over-Month</span>
+            <div class="flex items-center gap-2 mt-2">
+                <span class="text-2xl font-extrabold {% if kpis.mom_is_increase %}text-rose-600{% else %}text-emerald-600{% endif %}">
+                    {% if kpis.mom_is_increase %}+{% endif %}{{ kpis.mom_percentage_change }}%
+                </span>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full {% if kpis.mom_is_increase %}bg-rose-50 text-rose-700{% else %}bg-emerald-50 text-emerald-700{% endif %}">
+                    {% if kpis.mom_is_increase %}▲ Higher{% else %}▼ Lower{% endif %}
+                </span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1">vs. previous calendar month</div>
+        </div>
+
+        <!-- Top Category -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Category</span>
+            <div class="text-lg font-bold text-slate-900 mt-2 truncate">{{ kpis.top_category }}</div>
+            <div class="text-xs font-semibold text-slate-500 mt-1">₹{{ kpis.top_category_amount|floatformat:2 }} this month</div>
+        </div>
+
+    </div>
+
+    <!-- BUDGETING STATUS CARD (Step 5) -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Monthly Budget Trajectory</h2>
+                <p class="text-xs text-slate-500">Live monitoring for {{ current_month }} {{ current_year }}</p>
+            </div>
+            {% if budget_info.has_budget %}
+                <span class="text-xs font-bold px-3 py-1 rounded-full 
+                    {% if budget_info.status_level == 'danger' %}bg-rose-100 text-rose-800
+                    {% elif budget_info.status_level == 'warning' %}bg-amber-100 text-amber-800
+                    {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                    {{ budget_info.used_percentage }}% Allocated
+                </span>
+            {% else %}
+                <button onclick="openModal('budgetModal')" class="text-xs font-semibold text-brand-600 hover:text-brand-700 underline">
+                    + Set a budget to track targets
+                </button>
+            {% endif %}
+        </div>
+
+        {% if budget_info.has_budget %}
+            <div class="space-y-3">
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden">
+                    <div class="h-3.5 rounded-full transition-all duration-500 
+                        {% if budget_info.status_level == 'danger' %}bg-rose-500
+                        {% elif budget_info.status_level == 'warning' %}bg-amber-500
+                        {% else %}bg-emerald-500{% endif %}" 
+                        style="width: {% if budget_info.used_percentage > 100 %}100{% else %}{{ budget_info.used_percentage }}{% endif %}%;">
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-between items-center text-xs text-slate-600 pt-1">
+                    <div>
+                        <span class="text-slate-400">Monthly Budget:</span> 
+                        <strong class="text-slate-800">₹{{ budget_info.budget_amount|floatformat:2 }}</strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-400">Spent:</span> 
+                        <strong class="{% if budget_info.status_level == 'danger' %}text-rose-600{% else %}text-slate-800{% endif %}">
+                            ₹{{ budget_info.spent_amount|floatformat:2 }}
+                        </strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-400">Remaining:</span> 
+                        <strong class="{% if budget_info.status_level == 'danger' %}text-rose-600{% else %}text-emerald-700{% endif %}">
+                            ₹{{ budget_info.remaining_amount|floatformat:2 }}
+                        </strong>
+                    </div>
+                </div>
+
+                {% if budget_info.status_level == 'danger' %}
+                    <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                        <span>⚠️ <strong>Budget Exceeded:</strong> You have exceeded your {{ current_month }} target by ₹{{ budget_info.spent_amount|add:"-"|add:budget_info.budget_amount|floatformat:2 }}.</span>
+                    </div>
+                {% elif budget_info.status_level == 'warning' %}
+                    <div class="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center gap-2">
+                        <span>⚠️ <strong>Budget Warning:</strong> You have utilized over 80% of your allocated budget for this month.</span>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="text-center py-4 text-xs text-slate-400">
+                No active budget configured for this month. Click "Set Budget" above to set a target limit and receive real-time warnings.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- AI INSIGHTS SECTION (Step 7) -->
+    <div class="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-md">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-sm">
+                    ✨
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm">Claude AI Spending Observations</h3>
+                    <p class="text-xs text-slate-400">Objective financial insights synthesized from your verified figures</p>
+                </div>
+            </div>
+            <div>
+                <button id="btnGenerateInsights" onclick="fetchAiInsights()" class="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white border border-white/20 transition-all flex items-center gap-2">
+                    <span id="insightsSpinner" class="hidden animate-spin">🔄</span>
+                    <span>Generate AI Insights</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="aiInsightsContainer" class="text-xs text-slate-300 space-y-2">
+            {% if not ai_configured %}
+                <p class="text-amber-300 bg-amber-950/40 border border-amber-800/40 p-3 rounded-lg">
+                    ℹ️ AI features require Anthropic API configuration. Please set <code>ANTHROPIC_API_KEY</code> in your environment to generate real-time Claude observations.
+                </p>
+            {% else %}
+                <p class="text-slate-400 italic">Click "Generate AI Insights" to have Claude analyze your spending trajectory and category changes.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- DATA VISUALIZATIONS (Step 4) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Spending Trend -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold text-slate-900">Spending Trend Over Time</h3>
+                <span class="text-xs text-slate-400">Plotly Visualizer</span>
+            </div>
+            <div class="overflow-hidden">
+                {{ spending_trend_chart|safe }}
+            </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold text-slate-900">Category Distribution</h3>
+                <span class="text-xs text-slate-400">Share of Wallet</span>
+            </div>
+            <div class="overflow-hidden">
+                {{ category_chart|safe }}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FILTERS BAR (Step 4) -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <form method="get" action="{% url 'dashboard' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
+                <input type="date" name="start_date" value="{{ start_date }}" class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">End Date</label>
+                <input type="date" name="end_date" value="{{ end_date }}" class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                <select name="category" class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm">
+                    <option value="">All Categories</option>
+                    {% for cat in all_categories %}
+                        <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Search Keywords</label>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Merchant, description..." class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm">
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2 px-3 rounded-lg transition-all">
+                    Apply Filter
+                </button>
+                <a href="{% url 'dashboard' %}" class="text-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2 px-3 rounded-lg transition-all">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- TRANSACTIONS TABLE (Step 4) -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900">Recorded Transactions</h3>
+                <p class="text-xs text-slate-500">Showing {{ expenses|length }} entries matching current filters</p>
+            </div>
+            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&search={{ search_query }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">
+                Download CSV &rarr;
+            </a>
+        </div>
+
+        {% if expenses %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
+                        <tr>
+                            <th class="py-3 px-4">Date</th>
+                            <th class="py-3 px-4">Category</th>
+                            <th class="py-3 px-4">Merchant / Vendor</th>
+                            <th class="py-3 px-4">Description</th>
+                            <th class="py-3 px-4 text-right">Amount</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for expense in expenses %}
+                            <tr class="hover:bg-slate-50/60 transition-colors">
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap font-medium">{{ expense.date|date:"d M Y" }}</td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                        {{ expense.category }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-slate-800 font-medium">
+                                    {{ expense.vendor|default:"—" }}
+                                </td>
+                                <td class="py-3.5 px-4 text-slate-500 max-w-xs truncate">
+                                    {{ expense.description|default:"—" }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right font-bold text-slate-900 whitespace-nowrap">
+                                    ₹{{ expense.amount|floatformat:2 }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-2">
+                                    <a href="{% url 'edit_expense' expense.id %}" class="font-semibold text-slate-600 hover:text-brand-600">
+                                        Edit
+                                    </a>
+                                    <form method="post" action="{% url 'delete_expense' expense.id %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this expense?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="font-semibold text-rose-600 hover:text-rose-800">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-12 px-4">
+                <div class="text-3xl mb-2">🧾</div>
+                <h4 class="text-sm font-bold text-slate-800">No transactions found</h4>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">There are no expenses matching your filter criteria. Add a new expense manually or import a receipt with Claude Vision.</p>
+                <button onclick="openModal('addExpenseModal')" class="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm">
+                    + Add First Expense
+                </button>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODALS -->
+<!-- ========================================================================= -->
+
+<!-- 1. ADD EXPENSE MODAL -->
+<div id="addExpenseModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+            <h3 class="font-bold text-slate-900 text-base">Add New Expense</h3>
+            <button onclick="closeModal('addExpenseModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
+        </div>
+        <form method="post" action="{% url 'add_expense' %}">
+            {% csrf_token %}
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Amount (₹)*</label>
+                    {{ expense_form.amount }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Category*</label>
+                    {{ expense_form.category }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Merchant / Vendor</label>
+                    {{ expense_form.vendor }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Date*</label>
+                    {{ expense_form.date }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Notes / Description</label>
+                    {{ expense_form.description }}
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm">
+                    Save Expense
+                </button>
+                <button type="button" onclick="closeModal('addExpenseModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 px-4 rounded-xl">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. IMPORT RECEIPT MODAL (CLAUDE VISION) -->
+<div id="receiptModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Import Receipt with Claude AI</h3>
+                <p class="text-[11px] text-slate-500">Multimodal OCR extracts merchant, items, taxes, and amounts</p>
+            </div>
+            <button onclick="closeModal('receiptModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
+        </div>
+
+        <!-- Step 1: Upload Image -->
+        <div id="receiptUploadStep" class="space-y-4">
+            <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-brand-300 transition-colors">
+                <input type="file" id="receiptFileInput" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" onchange="handleReceiptFileSelect(this)">
+                <label for="receiptFileInput" class="cursor-pointer block">
+                    <div class="text-3xl mb-2">📸</div>
+                    <span class="text-xs font-semibold text-brand-600 hover:text-brand-700">Click to upload receipt image</span>
+                    <p class="text-[11px] text-slate-400 mt-1">JPEG, PNG, WEBP (Max 5MB)</p>
+                </label>
+                <div id="receiptImagePreview" class="hidden mt-3 max-h-48 overflow-hidden rounded-lg border border-slate-100">
+                    <img id="previewImg" class="w-full object-contain max-h-48" src="" alt="Receipt preview">
+                </div>
+            </div>
+
+            <div id="receiptStatusMessage" class="hidden text-xs p-3 rounded-xl"></div>
+
+            <button type="button" id="btnScanReceipt" onclick="scanReceiptWithClaude()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm disabled:opacity-50" disabled>
+                Scan with Claude
+            </button>
+        </div>
+
+        <!-- Step 2: Verification Form (User edits before saving) -->
+        <div id="receiptReviewStep" class="hidden mt-4 pt-4 border-t border-slate-100">
+            <div class="bg-indigo-50 border border-indigo-200 text-indigo-900 p-3 rounded-xl text-xs mb-4">
+                ✅ <strong>Claude Extracted Data:</strong> Please review and adjust the extracted figures before saving.
+            </div>
+
+            <form method="post" action="{% url 'add_expense' %}">
+                {% csrf_token %}
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Amount (₹)*</label>
+                        <input type="number" step="0.01" id="extractedAmount" name="amount" required class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Category*</label>
+                        <select id="extractedCategory" name="category" class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm">
+                            {% for cat in all_categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Merchant / Vendor</label>
+                        <input type="text" id="extractedVendor" name="vendor" class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Date*</label>
+                        <input type="date" id="extractedDate" name="date" required class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Description / Line Items</label>
+                        <textarea id="extractedDescription" name="description" rows="2" class="w-full text-xs rounded-lg border-slate-300 py-2 px-3 border shadow-sm"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm">
+                        Confirm & Save Expense
+                    </button>
+                    <button type="button" onclick="resetReceiptModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 px-4 rounded-xl">
+                        Back
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<!-- 3. ASK AI MODAL -->
+<div id="askAiModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Ask FinTrack Assistant</h3>
+                <p class="text-[11px] text-slate-500">Controlled financial Q&A backed by Claude and verified database records</p>
+            </div>
+            <button onclick="closeModal('askAiModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
+        </div>
+
+        <div class="space-y-3">
+            <label class="block text-xs font-semibold text-slate-700">What would you like to know about your expenses?</label>
+            <textarea id="aiQuestionInput" rows="3" placeholder="e.g. What did I spend the most on this month? Did my dining expenses increase?" class="w-full text-xs rounded-xl border border-slate-300 p-3 shadow-sm focus:ring-2 focus:ring-indigo-500"></textarea>
+
+            <!-- Quick Suggestions -->
+            <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="setQuickQuestion('What was my largest spending category this month?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
+                    Top category?
+                </button>
+                <button type="button" onclick="setQuickQuestion('Did my overall spending increase compared to last month?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
+                    Spending trend?
+                </button>
+                <button type="button" onclick="setQuickQuestion('What is my current monthly budget utilization?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
+                    Budget status?
+                </button>
+            </div>
+
+            <button type="button" id="btnAskAiSubmit" onclick="submitAiQuestion()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                <span id="aiQuestionSpinner" class="hidden animate-spin">🔄</span>
+                <span>Ask Question</span>
+            </button>
+
+            <!-- Answer Box -->
+            <div id="aiAnswerContainer" class="hidden mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 leading-relaxed">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. SET BUDGET MODAL -->
+<div id="budgetModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+            <h3 class="font-bold text-slate-900 text-base">Set Monthly Budget</h3>
+            <button onclick="closeModal('budgetModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
+        </div>
+        <form method="post" action="{% url 'set_budget' %}">
+            {% csrf_token %}
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Month</label>
+                    {{ budget_form.month }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Year</label>
+                    {{ budget_form.year }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Budget Target (₹)*</label>
+                    {{ budget_form.amount }}
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm">
+                    Save Budget
+                </button>
+                <button type="button" onclick="closeModal('budgetModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 px-4 rounded-xl">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Modal Helpers
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    // CSRF Token Helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // 1. RECEIPT OCR HANDLING
+    let selectedReceiptFile = null;
+
+    function handleReceiptFileSelect(input) {
+        if (input.files && input.files[0]) {
+            selectedReceiptFile = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('receiptImagePreview').classList.remove('hidden');
+                document.getElementById('btnScanReceipt').disabled = false;
+            };
+            reader.readAsDataURL(selectedReceiptFile);
+        }
+    }
+
+    async function scanReceiptWithClaude() {
+        if (!selectedReceiptFile) return;
+
+        const btn = document.getElementById('btnScanReceipt');
+        const statusBox = document.getElementById('receiptStatusMessage');
+        btn.disabled = true;
+        btn.innerText = 'Scanning with Claude Vision...';
+        statusBox.className = 'text-xs p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800';
+        statusBox.innerText = 'Analyzing receipt items and amounts...';
+        statusBox.classList.remove('hidden');
+
+        const formData = new FormData();
+        formData.append('receipt_image', selectedReceiptFile);
+
+        try {
+            const response = await fetch("{% url 'scan_receipt_api' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.data) {
+                const ext = data.data;
+                document.getElementById('extractedAmount').value = ext.total || 0;
+                document.getElementById('extractedVendor').value = ext.vendor || '';
+                document.getElementById('extractedDate').value = ext.date || '';
+                document.getElementById('extractedCategory').value = ext.category || 'Other';
+                
+                let desc = '';
+                if (ext.items && ext.items.length > 0) {
+                    desc = ext.items.map(it => `${it.name}: ₹${it.price}`).join(', ');
+                }
+                document.getElementById('extractedDescription').value = desc;
+
+                document.getElementById('receiptUploadStep').classList.add('hidden');
+                document.getElementById('receiptReviewStep').classList.remove('hidden');
+            } else {
+                statusBox.className = 'text-xs p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800';
+                statusBox.innerText = data.error || 'Failed to scan receipt. Please enter details manually.';
+                btn.disabled = false;
+                btn.innerText = 'Try Again';
+            }
+        } catch (err) {
+            statusBox.className = 'text-xs p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800';
+            statusBox.innerText = 'Network error contacting server: ' + err.message;
+            btn.disabled = false;
+            btn.innerText = 'Try Again';
+        }
+    }
+
+    function resetReceiptModal() {
+        document.getElementById('receiptReviewStep').classList.add('hidden');
+        document.getElementById('receiptUploadStep').classList.remove('hidden');
+        document.getElementById('btnScanReceipt').disabled = false;
+        document.getElementById('btnScanReceipt').innerText = 'Scan with Claude';
+        document.getElementById('receiptStatusMessage').classList.add('hidden');
+    }
+
+    // 2. ASK AI HANDLING
+    function setQuickQuestion(text) {
+        document.getElementById('aiQuestionInput').value = text;
+    }
+
+    async function submitAiQuestion() {
+        const question = document.getElementById('aiQuestionInput').value.trim();
+        if (!question) return;
+
+        const btn = document.getElementById('btnAskAiSubmit');
+        const spinner = document.getElementById('aiQuestionSpinner');
+        const answerBox = document.getElementById('aiAnswerContainer');
+
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        answerBox.classList.remove('hidden');
+        answerBox.innerHTML = '<span class="text-slate-500 italic">Consulting Claude with verified context...</span>';
+
+        try {
+            const response = await fetch("{% url 'ask_ai_api' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: jsonStringify({ question: question })
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.answer) {
+                answerBox.innerHTML = `
+                    <div class="font-semibold text-indigo-700 mb-1">🤖 Claude Assistant:</div>
+                    <p>${escapeHtml(data.answer)}</p>
+                `;
+            } else {
+                answerBox.innerHTML = `<span class="text-rose-600 font-semibold">${escapeHtml(data.error || 'Failed to answer question.')}</span>`;
+            }
+        } catch (err) {
+            answerBox.innerHTML = `<span class="text-rose-600 font-semibold">Error: ${escapeHtml(err.message)}</span>`;
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+        }
+    }
+
+    // 3. AI FINANCIAL INSIGHTS HANDLING
+    async function fetchAiInsights() {
+        const container = document.getElementById('aiInsightsContainer');
+        const spinner = document.getElementById('insightsSpinner');
+        const btn = document.getElementById('btnGenerateInsights');
+
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        container.innerHTML = '<p class="text-slate-400 italic">Analyzing verified spending data with Claude...</p>';
+
+        try {
+            const response = await fetch("{% url 'ai_insights_api' %}");
+            const data = await response.json();
+
+            if (data.success && data.insights && data.insights.length > 0) {
+                let html = '<ul class="space-y-2">';
+                data.insights.forEach(item => {
+                    html += `<li class="flex items-start gap-2 bg-white/5 p-2.5 rounded-lg border border-white/10"><span class="text-indigo-400">💡</span><span>${escapeHtml(item)}</span></li>`;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `<p class="text-amber-300">${escapeHtml(data.error || 'No insights could be generated.')}</p>`;
+            }
+        } catch (err) {
+            container.innerHTML = `<p class="text-rose-400">Error connecting to server: ${escapeHtml(err.message)}</p>`;
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+        }
+    }
+
+    function jsonStringify(obj) {
+        return JSON.stringify(obj);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.innerText = text;
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}
