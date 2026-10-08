@@ -9,10 +9,11 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 
-from .models import Expense, Budget, DEFAULT_CATEGORIES
-from .forms import ExpenseForm, BudgetForm, ReceiptUploadForm
+from .models import Expense, Income, Budget, DEFAULT_CATEGORIES, DEFAULT_INCOME_SOURCES
+from .forms import ExpenseForm, IncomeForm, BudgetForm, ReceiptUploadForm
 from .services.analytics_service import (
     get_user_expenses,
+    get_user_incomes,
     get_kpi_summary,
     get_budget_status,
     build_spending_trend_chart,
@@ -40,8 +41,9 @@ def privacy_policy(request):
 @login_required
 def dashboard(request):
     """
-    Main user dashboard with top KPIs, Plotly trend and category charts,
-    budget status, filters, and expense listing.
+    Main user dashboard with top KPIs (Net Balance, Income, Expenses),
+    Plotly trend and category charts, category & monthly budget status,
+    transaction filters, and recent incomes/expenses.
     """
     start_date = request.GET.get('start_date') or ''
     end_date = request.GET.get('end_date') or ''
@@ -57,10 +59,13 @@ def dashboard(request):
         search=search or None,
     )
 
-    # Top KPI Metrics (unfiltered / month-over-month)
+    # User incomes
+    user_incomes = get_user_incomes(request.user)[:10]
+
+    # Top KPI Metrics (Net Balance, Lifetime/Monthly Income & Expenses, MoM %)
     kpis = get_kpi_summary(request.user)
 
-    # Budget Status
+    # Budget Status (Overall and Category Budgets)
     today = date.today()
     budget_info = get_budget_status(request.user, month=today.month, year=today.year)
 
@@ -70,6 +75,7 @@ def dashboard(request):
 
     # Forms
     expense_form = ExpenseForm()
+    income_form = IncomeForm()
     budget_form = BudgetForm(initial={'month': today.month, 'year': today.year})
     receipt_form = ReceiptUploadForm()
 
@@ -77,11 +83,13 @@ def dashboard(request):
 
     context = {
         'expenses': user_expenses,
+        'incomes': user_incomes,
         'kpis': kpis,
         'budget_info': budget_info,
         'spending_trend_chart': spending_trend_chart,
         'category_chart': category_chart,
         'expense_form': expense_form,
+        'income_form': income_form,
         'budget_form': budget_form,
         'receipt_form': receipt_form,
         'start_date': start_date,
@@ -89,6 +97,7 @@ def dashboard(request):
         'selected_category': category,
         'search_query': search,
         'all_categories': DEFAULT_CATEGORIES,
+        'all_income_sources': DEFAULT_INCOME_SOURCES,
         'ai_configured': ai_service.is_configured(),
         'current_year': today.year,
         'current_month': today.strftime('%B'),
@@ -109,6 +118,33 @@ def add_expense(request):
     else:
         error_msg = "; ".join([f"{k}: {', '.join(v)}" for k, v in form.errors.items()])
         messages.error(request, f"Failed to add expense: {error_msg}")
+    return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def add_income(request):
+    """Add an income record scoped strictly to the authenticated user."""
+    form = IncomeForm(request.POST)
+    if form.is_valid():
+        income = form.save(commit=False)
+        income.user = request.user
+        income.save()
+        messages.success(request, f"Income of ₹{income.amount} ({income.source}) recorded successfully.")
+    else:
+        error_msg = "; ".join([f"{k}: {', '.join(v)}" for k, v in form.errors.items()])
+        messages.error(request, f"Failed to add income: {error_msg}")
+    return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def delete_income(request, income_id):
+    """Delete an income record. Scoped strictly to the logged-in user."""
+    income = get_object_or_404(Income, pk=income_id, user=request.user)
+    amount = income.amount
+    income.delete()
+    messages.success(request, f"Income record of ₹{amount} was deleted.")
     return redirect('dashboard')
 
 
@@ -148,20 +184,23 @@ def delete_expense(request, expense_id):
 @login_required
 @require_POST
 def set_budget(request):
-    """Create or update monthly budget for the user."""
+    """Create or update monthly or category budget for the user."""
     form = BudgetForm(request.POST)
     if form.is_valid():
         month = int(form.cleaned_data['month'])
         year = int(form.cleaned_data['year'])
+        category = form.cleaned_data.get('category', '').strip()
         amount = form.cleaned_data['amount']
 
         Budget.objects.update_or_create(
             user=request.user,
             month=month,
             year=year,
+            category=category,
             defaults={'amount': amount}
         )
-        messages.success(request, f"Budget for {month}/{year} updated to ₹{amount}.")
+        cat_label = f" for {category}" if category else ""
+        messages.success(request, f"Budget{cat_label} for {month}/{year} updated to ₹{amount}.")
     else:
         messages.error(request, "Invalid budget values. Please provide a positive amount.")
     return redirect('dashboard')
@@ -251,6 +290,7 @@ def ask_ai_api(request):
     """
     Answers a natural language financial question using pre-computed,
     verified backend data. Never runs arbitrary SQL.
+    Input limited to 500 characters for cost and abuse control.
     """
     try:
         body = json.loads(request.body)
@@ -260,6 +300,9 @@ def ask_ai_api(request):
 
     if not question:
         return JsonResponse({'success': False, 'error': 'Please provide a question.'}, status=400)
+
+    if len(question) > 500:
+        return JsonResponse({'success': False, 'error': 'Question is too long (maximum 500 characters).'}, status=400)
 
     context_data = get_financial_context_for_ai(request.user)
     ai_service = ClaudeAIService()
@@ -281,7 +324,7 @@ def signup(request):
         if form.is_valid():
             user = form.save()
             auth_login(request, user)
-            messages.success(request, f"Welcome to FinTrack, {user.username}! Your account has been created.")
+            messages.success(request, f"Welcome to FinSight, {user.username}! Your account is now active.")
             return redirect('dashboard')
     else:
         form = UserCreationForm()

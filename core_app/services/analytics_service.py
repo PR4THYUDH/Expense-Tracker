@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.db.models import Sum, Count, Avg
-from ..models import Expense, Budget
+from ..models import Expense, Income, Budget
 
 
 def get_user_expenses(user, start_date=None, end_date=None, category=None, search=None):
@@ -23,9 +23,30 @@ def get_user_expenses(user, start_date=None, end_date=None, category=None, searc
     return qs.order_by('-date', '-created_at')
 
 
+def get_user_incomes(user, start_date=None, end_date=None, search=None):
+    """
+    Returns user incomes scoped strictly to the authenticated user with optional filtering.
+    """
+    qs = Income.objects.filter(user=user)
+    if start_date:
+        qs = qs.filter(date__gte=start_date)
+    if end_date:
+        qs = qs.filter(date__lte=end_date)
+    if search:
+        qs = qs.filter(source__icontains=search) | qs.filter(description__icontains=search)
+    return qs.order_by('-date', '-created_at')
+
+
 def get_total_spending(user, start_date=None, end_date=None) -> float:
-    """Returns the total amount spent by the user in the given date range."""
+    """Returns total spending by the user in the given date range."""
     qs = get_user_expenses(user, start_date=start_date, end_date=end_date)
+    total = qs.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    return float(total)
+
+
+def get_total_income(user, start_date=None, end_date=None) -> float:
+    """Returns total income for the user in the given date range."""
+    qs = get_user_incomes(user, start_date=start_date, end_date=end_date)
     total = qs.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
     return float(total)
 
@@ -113,56 +134,110 @@ def get_previous_month_comparison(user) -> dict:
 
 def get_budget_status(user, month=None, year=None) -> dict:
     """
-    Calculates monthly budget target, actual spent, remaining, and utilization percentage.
+    Calculates monthly budget targets, actual spent, remaining, and category budgets.
+    Supports both overall monthly budget and granular category budgets.
     """
     today = date.today()
     target_month = month or today.month
     target_year = year or today.year
 
-    budget_obj = Budget.objects.filter(user=user, month=target_month, year=target_year).first()
-    budget_limit = float(budget_obj.amount) if budget_obj else 0.0
+    # Overall budget (category='')
+    overall_budget_obj = Budget.objects.filter(user=user, month=target_month, year=target_year, category='').first()
+    budget_limit = float(overall_budget_obj.amount) if overall_budget_obj else 0.0
 
-    spent = float(
+    total_spent = float(
         Expense.objects.filter(user=user, date__year=target_year, date__month=target_month)
         .aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
     )
 
-    remaining = max(0.0, budget_limit - spent) if budget_limit > 0 else 0.0
-    used_percentage = round((spent / budget_limit) * 100, 1) if budget_limit > 0 else 0.0
+    remaining = max(0.0, budget_limit - total_spent) if budget_limit > 0 else 0.0
+    used_percentage = round((total_spent / budget_limit) * 100, 1) if budget_limit > 0 else 0.0
 
     status_level = 'normal'
     if budget_limit > 0:
-        if spent > budget_limit:
+        if total_spent > budget_limit:
             status_level = 'danger'  # Exceeded
         elif used_percentage >= 80:
             status_level = 'warning'  # Near limit
 
+    # Category-specific budgets
+    cat_budgets = Budget.objects.filter(user=user, month=target_month, year=target_year).exclude(category='')
+    category_budget_list = []
+
+    for cb in cat_budgets:
+        cat_spent = float(
+            Expense.objects.filter(
+                user=user,
+                date__year=target_year,
+                date__month=target_month,
+                category=cb.category
+            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        )
+        cat_amount = float(cb.amount)
+        cat_remaining = max(0.0, cat_amount - cat_spent)
+        cat_pct = round((cat_spent / cat_amount) * 100, 1) if cat_amount > 0 else 0.0
+
+        cat_status = 'normal'
+        if cat_spent > cat_amount:
+            cat_status = 'danger'
+        elif cat_pct >= 80:
+            cat_status = 'warning'
+
+        category_budget_list.append({
+            'category': cb.category,
+            'budget_amount': cat_amount,
+            'spent_amount': cat_spent,
+            'remaining_amount': cat_remaining,
+            'used_percentage': cat_pct,
+            'status_level': cat_status,
+        })
+
     return {
         'has_budget': budget_limit > 0,
         'budget_amount': budget_limit,
-        'spent_amount': spent,
+        'spent_amount': total_spent,
         'remaining_amount': remaining,
         'used_percentage': used_percentage,
         'status_level': status_level,
         'month': target_month,
         'year': target_year,
+        'category_budgets': category_budget_list,
+        'has_category_budgets': len(category_budget_list) > 0,
     }
 
 
 def get_kpi_summary(user) -> dict:
     """
     Computes all high-level dashboard KPIs:
-    - Total spending
-    - This month's spending
-    - Previous month's spending
+    - Total balance (Lifetime Income minus Lifetime Expenses)
+    - Total Lifetime Spending
+    - Total Lifetime Income
+    - This Month's Income
+    - This Month's Expenses
+    - Previous Month's Spending
     - MoM percentage change
+    - Savings rate this month
     - Top spending category
     """
     comparison = get_previous_month_comparison(user)
-    total_lifetime = get_total_spending(user)
+    total_lifetime_expenses = get_total_spending(user)
+    total_lifetime_income = get_total_income(user)
+    net_lifetime_balance = total_lifetime_income - total_lifetime_expenses
+
+    today = date.today()
+    this_month_income = float(
+        Income.objects.filter(user=user, date__year=today.year, date__month=today.month)
+        .aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    )
+    this_month_expenses = comparison['current_month_total']
+    this_month_balance = this_month_income - this_month_expenses
+
+    if this_month_income > 0:
+        savings_rate = round(((this_month_income - this_month_expenses) / this_month_income) * 100, 1)
+    else:
+        savings_rate = 0.0
 
     # Top category this month
-    today = date.today()
     top_cat_item = (
         Expense.objects.filter(user=user, date__year=today.year, date__month=today.month)
         .values('category')
@@ -174,11 +249,16 @@ def get_kpi_summary(user) -> dict:
     top_category_amount = float(top_cat_item['total']) if top_cat_item else 0.0
 
     return {
-        'total_lifetime': total_lifetime,
-        'this_month_total': comparison['current_month_total'],
+        'net_balance': net_lifetime_balance,
+        'this_month_balance': this_month_balance,
+        'total_lifetime_income': total_lifetime_income,
+        'this_month_income': this_month_income,
+        'total_lifetime': total_lifetime_expenses,
+        'this_month_total': this_month_expenses,
         'prev_month_total': comparison['prev_month_total'],
         'mom_percentage_change': comparison['percentage_change'],
         'mom_is_increase': comparison['is_increase'],
+        'savings_rate': savings_rate,
         'top_category': top_category,
         'top_category_amount': top_category_amount,
     }
@@ -188,6 +268,7 @@ def get_financial_context_for_ai(user) -> dict:
     """
     Constructs a controlled, verified financial summary for Claude.
     Omits raw identifiers and account numbers to safeguard privacy.
+    Includes incomes, expenses, categories, budget utilization, and largest transactions.
     """
     today = date.today()
     kpis = get_kpi_summary(user)
@@ -195,8 +276,20 @@ def get_financial_context_for_ai(user) -> dict:
     categories = get_category_spending(user)
     monthly = get_monthly_spending(user, year=today.year)
 
-    # Recent 5 transactions summarized
-    recent_qs = Expense.objects.filter(user=user).order_by('-date')[:5]
+    # Top 5 largest expenses ever
+    largest_qs = Expense.objects.filter(user=user).order_by('-amount')[:5]
+    largest_expenses = [
+        {
+            'date': exp.date.isoformat(),
+            'category': exp.category,
+            'amount': float(exp.amount),
+            'vendor': exp.vendor or 'N/A'
+        }
+        for exp in largest_qs
+    ]
+
+    # Recent 5 transactions
+    recent_qs = Expense.objects.filter(user=user).order_by('-date', '-created_at')[:5]
     recent_transactions = [
         {
             'date': exp.date.isoformat(),
@@ -209,15 +302,18 @@ def get_financial_context_for_ai(user) -> dict:
 
     return {
         "report_date": today.isoformat(),
+        "net_balance": kpis['net_balance'],
+        "this_month_income": kpis['this_month_income'],
+        "this_month_expenses": kpis['this_month_total'],
         "total_lifetime_spend": kpis['total_lifetime'],
-        "this_month_spend": kpis['this_month_total'],
-        "prev_month_spend": kpis['prev_month_total'],
         "month_over_month_change_pct": kpis['mom_percentage_change'],
         "top_spending_category": kpis['top_category'],
         "monthly_budget": budget['budget_amount'],
         "budget_used_percentage": budget['used_percentage'],
         "budget_status": budget['status_level'],
+        "category_budgets": budget['category_budgets'],
         "categories_breakdown": categories[:6],
+        "largest_expenses": largest_expenses,
         "monthly_spending_trend": monthly,
         "recent_transactions": recent_transactions
     }
@@ -244,7 +340,7 @@ def build_spending_trend_chart(user_expenses) -> str:
         x='date',
         y='amount',
         labels={'date': 'Date', 'amount': 'Spent (₹)'},
-        color_discrete_sequence=['#6366f1'],
+        color_discrete_sequence=['#4f46e5'],
     )
 
     fig.update_layout(
@@ -272,7 +368,7 @@ def build_category_breakdown_chart(user_expenses) -> str:
     cat_totals = df.groupby('category')['amount'].sum().reset_index()
     cat_totals = cat_totals.sort_values('amount', ascending=False)
 
-    colors = ['#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#94a3b8']
+    colors = ['#4f46e5', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#94a3b8']
 
     fig = px.pie(
         cat_totals,

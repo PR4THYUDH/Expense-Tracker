@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from core_app.models import Expense, Budget
+from core_app.models import Expense, Income, Budget
 from core_app.services.analytics_service import (
     get_total_spending,
     get_monthly_spending,
@@ -429,3 +429,74 @@ def test_ask_ai_api_endpoint_with_mock(client_a):
         )
         assert resp.status_code == 200
         assert 'dining' in resp.json()['answer']
+
+
+# =============================================================================
+# 6. INCOME & CATEGORY BUDGETING TESTS
+# =============================================================================
+
+@pytest.mark.django_db
+def test_create_income_valid(client_a, user_a):
+    resp = client_a.post(reverse('add_income'), {
+        'amount': '50000.00',
+        'source': 'Salary',
+        'date': str(date.today()),
+        'description': 'Monthly tech salary'
+    })
+    assert resp.status_code == 302
+    inc = Income.objects.filter(user=user_a, source='Salary').first()
+    assert inc is not None
+    assert inc.amount == Decimal('50000.00')
+
+
+@pytest.mark.django_db
+def test_user_a_cannot_delete_user_b_income(client_a, user_b):
+    inc_b = Income.objects.create(
+        user=user_b,
+        amount=Decimal('25000.00'),
+        source='Freelance',
+        date=date.today()
+    )
+    url = reverse('delete_income', kwargs={'income_id': inc_b.id})
+    resp = client_a.post(url)
+    assert resp.status_code == 404
+    assert Income.objects.filter(id=inc_b.id).exists()
+
+
+@pytest.mark.django_db
+def test_category_budget_tracking(user_a):
+    today = date.today()
+    # Create category budget for Food & Dining
+    Budget.objects.create(
+        user=user_a,
+        month=today.month,
+        year=today.year,
+        category='Food & Dining',
+        amount=Decimal('4000.00')
+    )
+    Expense.objects.create(
+        user=user_a,
+        amount=Decimal('3500.00'),
+        category='Food & Dining',
+        date=today
+    )
+
+    status = get_budget_status(user_a, month=today.month, year=today.year)
+    assert status['has_category_budgets'] is True
+    cat_b = status['category_budgets'][0]
+    assert cat_b['category'] == 'Food & Dining'
+    assert cat_b['spent_amount'] == 3500.0
+    assert cat_b['budget_amount'] == 4000.0
+    assert cat_b['status_level'] == 'warning'  # >80% used
+
+
+@pytest.mark.django_db
+def test_ask_ai_input_length_limit(client_a):
+    long_question = "What did I spend " + ("a" * 500)
+    resp = client_a.post(
+        reverse('ask_ai_api'),
+        data=json.dumps({'question': long_question}),
+        content_type='application/json'
+    )
+    assert resp.status_code == 400
+    assert "too long" in resp.json()['error']

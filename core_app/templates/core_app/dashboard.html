@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard — FinTrack AI{% endblock %}
+{% block title %}Dashboard — FinSight AI{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -8,68 +8,79 @@
     <!-- Dashboard Header & Top Actions -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Financial Overview</h1>
+            <div class="flex items-center gap-2">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">FinSight Dashboard</h1>
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Live</span>
+            </div>
             <p class="text-xs text-slate-500 mt-1">
-                Tracking expenses for <strong class="text-slate-700">{{ user.username }}</strong> &bull; Period: {{ current_month }} {{ current_year }}
+                Financial intelligence for <strong class="text-slate-700">{{ user.username }}</strong> &bull; {{ current_month }} {{ current_year }}
             </p>
         </div>
 
         <!-- Quick Action Buttons -->
-        <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2">
             <!-- Add Expense Button -->
-            <button onclick="openModal('addExpenseModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-sm shadow-brand-500/25 transition-all">
+            <button onclick="openModal('addExpenseModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-sm shadow-brand-500/25 transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Add Expense
             </button>
 
+            <!-- Add Income Button -->
+            <button onclick="openModal('addIncomeModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-500/25 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-6-6h12"/></svg>
+                + Income
+            </button>
+
             <!-- Import Receipt (Claude Vision) Button -->
-            <button onclick="openModal('receiptModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-brand-700 font-semibold text-xs border border-indigo-200 transition-all">
+            <button onclick="openModal('receiptModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-brand-700 font-semibold text-xs border border-indigo-200 transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                Import Receipt (AI)
+                Import Receipt
             </button>
 
             <!-- Ask AI Button -->
-            <button onclick="openModal('askAiModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs border border-purple-200 transition-all">
+            <button onclick="openModal('askAiModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs border border-purple-200 transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                 Ask Claude
             </button>
 
             <!-- Set Budget Button -->
-            <button onclick="openModal('budgetModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-all">
+            <button onclick="openModal('budgetModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                Set Budget
+                Budgeting
             </button>
 
             <!-- Export CSV Button -->
-            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&search={{ search_query }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-all">
+            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&search={{ search_query }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Export CSV
+                CSV
             </a>
         </div>
     </div>
 
-    <!-- TOP KPI CARDS (Step 4) -->
+    <!-- TOP KPI FINANCIAL SUMMARY CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
-        <!-- Total Spend -->
+        <!-- Net Balance -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Lifetime Spend</span>
-            <div class="text-2xl font-extrabold text-slate-900 mt-2">₹{{ kpis.total_lifetime|floatformat:2 }}</div>
-            <div class="text-[11px] text-slate-400 mt-1">Across all recorded dates</div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Financial Balance</span>
+            <div class="text-2xl font-extrabold {% if kpis.net_balance >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %} mt-2">
+                ₹{{ kpis.net_balance|floatformat:2 }}
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1">Total Income &minus; Expenses</div>
         </div>
 
-        <!-- This Month -->
+        <!-- This Month Income -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">This Month</span>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Income This Month</span>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2">₹{{ kpis.this_month_income|floatformat:2 }}</div>
+            <div class="text-[11px] text-slate-400 mt-1">₹{{ kpis.total_lifetime_income|floatformat:2 }} lifetime</div>
+        </div>
+
+        <!-- This Month Expenses -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Expenses This Month</span>
             <div class="text-2xl font-extrabold text-brand-600 mt-2">₹{{ kpis.this_month_total|floatformat:2 }}</div>
-            <div class="text-[11px] text-slate-400 mt-1">{{ current_month }} {{ current_year }}</div>
-        </div>
-
-        <!-- Previous Month -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Previous Month</span>
-            <div class="text-2xl font-extrabold text-slate-700 mt-2">₹{{ kpis.prev_month_total|floatformat:2 }}</div>
-            <div class="text-[11px] text-slate-400 mt-1">Comparison benchmark</div>
+            <div class="text-[11px] text-slate-400 mt-1">₹{{ kpis.total_lifetime|floatformat:2 }} lifetime</div>
         </div>
 
         <!-- MoM Percentage Change -->
@@ -88,83 +99,104 @@
 
         <!-- Top Category -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Category</span>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Spending Category</span>
             <div class="text-lg font-bold text-slate-900 mt-2 truncate">{{ kpis.top_category }}</div>
             <div class="text-xs font-semibold text-slate-500 mt-1">₹{{ kpis.top_category_amount|floatformat:2 }} this month</div>
         </div>
 
     </div>
 
-    <!-- BUDGETING STATUS CARD (Step 5) -->
-    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+    <!-- BUDGETING SECTION (Overall + Category Budgets) -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
-                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Monthly Budget Trajectory</h2>
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Budget Health & Category Ceilings</h2>
                 <p class="text-xs text-slate-500">Live monitoring for {{ current_month }} {{ current_year }}</p>
             </div>
-            {% if budget_info.has_budget %}
-                <span class="text-xs font-bold px-3 py-1 rounded-full 
-                    {% if budget_info.status_level == 'danger' %}bg-rose-100 text-rose-800
-                    {% elif budget_info.status_level == 'warning' %}bg-amber-100 text-amber-800
-                    {% else %}bg-emerald-100 text-emerald-800{% endif %}">
-                    {{ budget_info.used_percentage }}% Allocated
-                </span>
-            {% else %}
+            <div class="flex items-center gap-3">
+                {% if budget_info.has_budget %}
+                    <span class="text-xs font-bold px-3 py-1 rounded-full 
+                        {% if budget_info.status_level == 'danger' %}bg-rose-100 text-rose-800
+                        {% elif budget_info.status_level == 'warning' %}bg-amber-100 text-amber-800
+                        {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                        Overall: {{ budget_info.used_percentage }}% Spent
+                    </span>
+                {% endif %}
                 <button onclick="openModal('budgetModal')" class="text-xs font-semibold text-brand-600 hover:text-brand-700 underline">
-                    + Set a budget to track targets
+                    + Configure Budgets
                 </button>
-            {% endif %}
+            </div>
         </div>
 
+        <!-- Overall Budget Progress Bar -->
         {% if budget_info.has_budget %}
-            <div class="space-y-3">
-                <!-- Progress Bar -->
-                <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden">
-                    <div class="h-3.5 rounded-full transition-all duration-500 
+            <div class="space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-semibold text-slate-700">Overall Monthly Target</span>
+                    <span class="text-slate-500">
+                        ₹{{ budget_info.spent_amount|floatformat:2 }} of ₹{{ budget_info.budget_amount|floatformat:2 }}
+                    </span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div class="h-3 rounded-full transition-all duration-500 
                         {% if budget_info.status_level == 'danger' %}bg-rose-500
                         {% elif budget_info.status_level == 'warning' %}bg-amber-500
                         {% else %}bg-emerald-500{% endif %}" 
                         style="width: {% if budget_info.used_percentage > 100 %}100{% else %}{{ budget_info.used_percentage }}{% endif %}%;">
                     </div>
                 </div>
-
-                <div class="flex flex-wrap justify-between items-center text-xs text-slate-600 pt-1">
-                    <div>
-                        <span class="text-slate-400">Monthly Budget:</span> 
-                        <strong class="text-slate-800">₹{{ budget_info.budget_amount|floatformat:2 }}</strong>
-                    </div>
-                    <div>
-                        <span class="text-slate-400">Spent:</span> 
-                        <strong class="{% if budget_info.status_level == 'danger' %}text-rose-600{% else %}text-slate-800{% endif %}">
-                            ₹{{ budget_info.spent_amount|floatformat:2 }}
-                        </strong>
-                    </div>
-                    <div>
-                        <span class="text-slate-400">Remaining:</span> 
-                        <strong class="{% if budget_info.status_level == 'danger' %}text-rose-600{% else %}text-emerald-700{% endif %}">
-                            ₹{{ budget_info.remaining_amount|floatformat:2 }}
-                        </strong>
-                    </div>
+                <div class="flex justify-between items-center text-[11px] text-slate-500 pt-0.5">
+                    <span>Remaining: <strong class="{% if budget_info.status_level == 'danger' %}text-rose-600{% else %}text-emerald-700{% endif %}">₹{{ budget_info.remaining_amount|floatformat:2 }}</strong></span>
+                    <span>Status: <strong class="capitalize">{{ budget_info.status_level }}</strong></span>
                 </div>
-
                 {% if budget_info.status_level == 'danger' %}
-                    <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
-                        <span>⚠️ <strong>Budget Exceeded:</strong> You have exceeded your {{ current_month }} target by ₹{{ budget_info.spent_amount|add:"-"|add:budget_info.budget_amount|floatformat:2 }}.</span>
-                    </div>
-                {% elif budget_info.status_level == 'warning' %}
-                    <div class="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center gap-2">
-                        <span>⚠️ <strong>Budget Warning:</strong> You have utilized over 80% of your allocated budget for this month.</span>
+                    <div class="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs">
+                        ⚠️ <strong>Overspending Alert:</strong> Overall spending exceeds monthly target by ₹{{ budget_info.spent_amount|add:"-"|add:budget_info.budget_amount|floatformat:2 }}.
                     </div>
                 {% endif %}
             </div>
         {% else %}
-            <div class="text-center py-4 text-xs text-slate-400">
-                No active budget configured for this month. Click "Set Budget" above to set a target limit and receive real-time warnings.
+            <div class="text-center py-2 text-xs text-slate-400">
+                No overall monthly budget set. Click "Configure Budgets" to define spending limits.
+            </div>
+        {% endif %}
+
+        <!-- Category Budgets Grid -->
+        {% if budget_info.has_category_budgets %}
+            <div class="pt-2 border-t border-slate-100">
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-3">Category Budgets</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for cb in budget_info.category_budgets %}
+                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2 text-xs">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-800">{{ cb.category }}</span>
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full
+                                    {% if cb.status_level == 'danger' %}bg-rose-100 text-rose-800
+                                    {% elif cb.status_level == 'warning' %}bg-amber-100 text-amber-800
+                                    {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                                    {{ cb.used_percentage }}%
+                                </span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                <div class="h-2 rounded-full {% if cb.status_level == 'danger' %}bg-rose-500{% elif cb.status_level == 'warning' %}bg-amber-500{% else %}bg-emerald-500{% endif %}"
+                                    style="width: {% if cb.used_percentage > 100 %}100{% else %}{{ cb.used_percentage }}{% endif %}%;">
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-slate-500">
+                                <span>Spent: ₹{{ cb.spent_amount|floatformat:2 }}</span>
+                                <span>Cap: ₹{{ cb.budget_amount|floatformat:2 }}</span>
+                            </div>
+                            {% if cb.status_level == 'danger' %}
+                                <div class="text-[10px] text-rose-600 font-semibold">⚠️ Over budget by ₹{{ cb.spent_amount|add:"-"|add:cb.budget_amount|floatformat:2 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
         {% endif %}
     </div>
 
-    <!-- AI INSIGHTS SECTION (Step 7) -->
+    <!-- AI INSIGHTS OBSERVATION BANNER (Claude AI) -->
     <div class="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-md">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div class="flex items-center gap-3">
@@ -173,7 +205,7 @@
                 </div>
                 <div>
                     <h3 class="font-bold text-sm">Claude AI Spending Observations</h3>
-                    <p class="text-xs text-slate-400">Objective financial insights synthesized from your verified figures</p>
+                    <p class="text-xs text-slate-400">Objective financial insights synthesized from verified database figures</p>
                 </div>
             </div>
             <div>
@@ -187,22 +219,22 @@
         <div id="aiInsightsContainer" class="text-xs text-slate-300 space-y-2">
             {% if not ai_configured %}
                 <p class="text-amber-300 bg-amber-950/40 border border-amber-800/40 p-3 rounded-lg">
-                    ℹ️ AI features require Anthropic API configuration. Please set <code>ANTHROPIC_API_KEY</code> in your environment to generate real-time Claude observations.
+                    ℹ️ AI features require Anthropic API configuration. Set <code>ANTHROPIC_API_KEY</code> in your environment to generate real-time Claude observations.
                 </p>
             {% else %}
-                <p class="text-slate-400 italic">Click "Generate AI Insights" to have Claude analyze your spending trajectory and category changes.</p>
+                <p class="text-slate-400 italic">Click "Generate AI Insights" to have Claude analyze your spending trajectory and category shifts.</p>
             {% endif %}
         </div>
     </div>
 
-    <!-- DATA VISUALIZATIONS (Step 4) -->
+    <!-- DATA VISUALIZATIONS (Plotly Charts) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Spending Trend -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <h3 class="text-sm font-bold text-slate-900">Spending Trend Over Time</h3>
-                <span class="text-xs text-slate-400">Plotly Visualizer</span>
+                <span class="text-xs text-slate-400">Plotly Time-Series</span>
             </div>
             <div class="overflow-hidden">
                 {{ spending_trend_chart|safe }}
@@ -222,7 +254,7 @@
 
     </div>
 
-    <!-- FILTERS BAR (Step 4) -->
+    <!-- FILTERS BAR -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <form method="get" action="{% url 'dashboard' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <div>
@@ -261,75 +293,111 @@
         </form>
     </div>
 
-    <!-- TRANSACTIONS TABLE (Step 4) -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-            <div>
-                <h3 class="text-sm font-bold text-slate-900">Recorded Transactions</h3>
-                <p class="text-xs text-slate-500">Showing {{ expenses|length }} entries matching current filters</p>
+    <!-- TRANSACTIONS & INCOME SPLIT GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left 2 Cols: Recorded Expenses -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Recorded Expenses</h3>
+                    <p class="text-xs text-slate-500">Showing {{ expenses|length }} entries</p>
+                </div>
+                <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&search={{ search_query }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">
+                    Export CSV &rarr;
+                </a>
             </div>
-            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&search={{ search_query }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                Download CSV &rarr;
-            </a>
+
+            {% if expenses %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
+                            <tr>
+                                <th class="py-3 px-4">Date</th>
+                                <th class="py-3 px-4">Category</th>
+                                <th class="py-3 px-4">Vendor</th>
+                                <th class="py-3 px-4">Notes</th>
+                                <th class="py-3 px-4 text-right">Amount</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for expense in expenses %}
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="py-3 px-4 text-slate-600 whitespace-nowrap font-medium">{{ expense.date|date:"d M Y" }}</td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                            {{ expense.category }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate-800 font-medium">{{ expense.vendor|default:"—" }}</td>
+                                    <td class="py-3 px-4 text-slate-500 max-w-xs truncate">{{ expense.description|default:"—" }}</td>
+                                    <td class="py-3 px-4 text-right font-bold text-slate-900 whitespace-nowrap">₹{{ expense.amount|floatformat:2 }}</td>
+                                    <td class="py-3 px-4 text-right whitespace-nowrap space-x-2">
+                                        <a href="{% url 'edit_expense' expense.id %}" class="font-semibold text-slate-600 hover:text-brand-600">Edit</a>
+                                        <form method="post" action="{% url 'delete_expense' expense.id %}" class="inline" onsubmit="return confirm('Delete this expense?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="font-semibold text-rose-600 hover:text-rose-800">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-10 px-4">
+                    <div class="text-3xl mb-1">🧾</div>
+                    <h4 class="text-xs font-bold text-slate-800">No expenses recorded yet</h4>
+                    <p class="text-[11px] text-slate-500 max-w-xs mx-auto mt-1">Add expenses manually or scan receipts using Claude Vision.</p>
+                </div>
+            {% endif %}
         </div>
 
-        {% if expenses %}
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
-                        <tr>
-                            <th class="py-3 px-4">Date</th>
-                            <th class="py-3 px-4">Category</th>
-                            <th class="py-3 px-4">Merchant / Vendor</th>
-                            <th class="py-3 px-4">Description</th>
-                            <th class="py-3 px-4 text-right">Amount</th>
-                            <th class="py-3 px-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        {% for expense in expenses %}
-                            <tr class="hover:bg-slate-50/60 transition-colors">
-                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap font-medium">{{ expense.date|date:"d M Y" }}</td>
-                                <td class="py-3.5 px-4 whitespace-nowrap">
-                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                        {{ expense.category }}
-                                    </span>
-                                </td>
-                                <td class="py-3.5 px-4 text-slate-800 font-medium">
-                                    {{ expense.vendor|default:"—" }}
-                                </td>
-                                <td class="py-3.5 px-4 text-slate-500 max-w-xs truncate">
-                                    {{ expense.description|default:"—" }}
-                                </td>
-                                <td class="py-3.5 px-4 text-right font-bold text-slate-900 whitespace-nowrap">
-                                    ₹{{ expense.amount|floatformat:2 }}
-                                </td>
-                                <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-2">
-                                    <a href="{% url 'edit_expense' expense.id %}" class="font-semibold text-slate-600 hover:text-brand-600">
-                                        Edit
-                                    </a>
-                                    <form method="post" action="{% url 'delete_expense' expense.id %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this expense?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="font-semibold text-rose-600 hover:text-rose-800">
-                                            Delete
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="text-center py-12 px-4">
-                <div class="text-3xl mb-2">🧾</div>
-                <h4 class="text-sm font-bold text-slate-800">No transactions found</h4>
-                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">There are no expenses matching your filter criteria. Add a new expense manually or import a receipt with Claude Vision.</p>
-                <button onclick="openModal('addExpenseModal')" class="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm">
-                    + Add First Expense
+        <!-- Right Col: Income Stream -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Income Stream</h3>
+                    <p class="text-xs text-slate-500">Recent credits</p>
+                </div>
+                <button onclick="openModal('addIncomeModal')" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700">
+                    + Add
                 </button>
             </div>
-        {% endif %}
+
+            {% if incomes %}
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for inc in incomes %}
+                        <div class="p-4 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                            <div>
+                                <div class="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span>{{ inc.source }}</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">({{ inc.date|date:"d M" }})</span>
+                                </div>
+                                {% if inc.description %}
+                                    <p class="text-[11px] text-slate-500 truncate max-w-[180px]">{{ inc.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-extrabold text-emerald-600">+₹{{ inc.amount|floatformat:2 }}</span>
+                                <form method="post" action="{% url 'delete_income' inc.id %}" class="inline" onsubmit="return confirm('Delete this income?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-slate-400 hover:text-rose-600 font-bold">&times;</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-10 px-4">
+                    <div class="text-3xl mb-1">💰</div>
+                    <h4 class="text-xs font-bold text-slate-800">No income logged</h4>
+                    <p class="text-[11px] text-slate-500 max-w-xs mx-auto mt-1">Record your salary, freelance, or other earnings to monitor net savings.</p>
+                </div>
+            {% endif %}
+        </div>
+
     </div>
 
 </div>
@@ -381,7 +449,46 @@
     </div>
 </div>
 
-<!-- 2. IMPORT RECEIPT MODAL (CLAUDE VISION) -->
+<!-- 2. ADD INCOME MODAL -->
+<div id="addIncomeModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+            <h3 class="font-bold text-slate-900 text-base">Record Income</h3>
+            <button onclick="closeModal('addIncomeModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
+        </div>
+        <form method="post" action="{% url 'add_income' %}">
+            {% csrf_token %}
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Amount (₹)*</label>
+                    {{ income_form.amount }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Source*</label>
+                    {{ income_form.source }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Date*</label>
+                    {{ income_form.date }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Description / Notes</label>
+                    {{ income_form.description }}
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm">
+                    Record Income
+                </button>
+                <button type="button" onclick="closeModal('addIncomeModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 px-4 rounded-xl">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. IMPORT RECEIPT MODAL (CLAUDE VISION) -->
 <div id="receiptModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
@@ -392,13 +499,12 @@
             <button onclick="closeModal('receiptModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
         </div>
 
-        <!-- Step 1: Upload Image -->
         <div id="receiptUploadStep" class="space-y-4">
             <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-brand-300 transition-colors">
                 <input type="file" id="receiptFileInput" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" onchange="handleReceiptFileSelect(this)">
                 <label for="receiptFileInput" class="cursor-pointer block">
                     <div class="text-3xl mb-2">📸</div>
-                    <span class="text-xs font-semibold text-brand-600 hover:text-brand-700">Click to upload receipt image</span>
+                    <span class="text-xs font-semibold text-brand-600 hover:text-brand-700">Click to upload receipt photo</span>
                     <p class="text-[11px] text-slate-400 mt-1">JPEG, PNG, WEBP (Max 5MB)</p>
                 </label>
                 <div id="receiptImagePreview" class="hidden mt-3 max-h-48 overflow-hidden rounded-lg border border-slate-100">
@@ -413,7 +519,6 @@
             </button>
         </div>
 
-        <!-- Step 2: Verification Form (User edits before saving) -->
         <div id="receiptReviewStep" class="hidden mt-4 pt-4 border-t border-slate-100">
             <div class="bg-indigo-50 border border-indigo-200 text-indigo-900 p-3 rounded-xl text-xs mb-4">
                 ✅ <strong>Claude Extracted Data:</strong> Please review and adjust the extracted figures before saving.
@@ -462,51 +567,55 @@
     </div>
 </div>
 
-<!-- 3. ASK AI MODAL -->
+<!-- 4. ASK AI MODAL -->
 <div id="askAiModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200">
         <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
             <div>
-                <h3 class="font-bold text-slate-900 text-base">Ask FinTrack Assistant</h3>
+                <h3 class="font-bold text-slate-900 text-base">FinSight Assistant</h3>
                 <p class="text-[11px] text-slate-500">Controlled financial Q&A backed by Claude and verified database records</p>
             </div>
             <button onclick="closeModal('askAiModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
         </div>
 
         <div class="space-y-3">
-            <label class="block text-xs font-semibold text-slate-700">What would you like to know about your expenses?</label>
-            <textarea id="aiQuestionInput" rows="3" placeholder="e.g. What did I spend the most on this month? Did my dining expenses increase?" class="w-full text-xs rounded-xl border border-slate-300 p-3 shadow-sm focus:ring-2 focus:ring-indigo-500"></textarea>
+            <label class="block text-xs font-semibold text-slate-700">Ask a question about your finances:</label>
+            <textarea id="aiQuestionInput" rows="3" maxlength="500" placeholder="e.g. How much did I spend on food this month? Where did most of my money go last month? Show my biggest expenses." class="w-full text-xs rounded-xl border border-slate-300 p-3 shadow-sm focus:ring-2 focus:ring-indigo-500"></textarea>
 
             <!-- Quick Suggestions -->
             <div class="flex flex-wrap gap-1.5">
-                <button type="button" onclick="setQuickQuestion('What was my largest spending category this month?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
-                    Top category?
+                <button type="button" onclick="setQuickQuestion('How much did I spend on food this month?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
+                    Food spending?
                 </button>
-                <button type="button" onclick="setQuickQuestion('Did my overall spending increase compared to last month?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
-                    Spending trend?
+                <button type="button" onclick="setQuickQuestion('Where did most of my money go last month?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
+                    Last month breakdown?
                 </button>
-                <button type="button" onclick="setQuickQuestion('What is my current monthly budget utilization?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
-                    Budget status?
+                <button type="button" onclick="setQuickQuestion('Show my biggest expenses.')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
+                    Largest expenses?
+                </button>
+                <button type="button" onclick="setQuickQuestion('What is my current net balance and savings rate?')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">
+                    Net savings?
                 </button>
             </div>
 
             <button type="button" id="btnAskAiSubmit" onclick="submitAiQuestion()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
                 <span id="aiQuestionSpinner" class="hidden animate-spin">🔄</span>
-                <span>Ask Question</span>
+                <span>Ask Claude</span>
             </button>
 
-            <!-- Answer Box -->
-            <div id="aiAnswerContainer" class="hidden mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 leading-relaxed">
-            </div>
+            <div id="aiAnswerContainer" class="hidden mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 leading-relaxed"></div>
         </div>
     </div>
 </div>
 
-<!-- 4. SET BUDGET MODAL -->
+<!-- 5. BUDGETING MODAL -->
 <div id="budgetModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
         <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-            <h3 class="font-bold text-slate-900 text-base">Set Monthly Budget</h3>
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Configure Budget Target</h3>
+                <p class="text-[11px] text-slate-500">Overall or category-specific ceilings</p>
+            </div>
             <button onclick="closeModal('budgetModal')" class="text-slate-400 hover:text-slate-700">&times;</button>
         </div>
         <form method="post" action="{% url 'set_budget' %}">
@@ -521,13 +630,18 @@
                     {{ budget_form.year }}
                 </div>
                 <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Category (Optional)</label>
+                    {{ budget_form.category }}
+                    <p class="text-[10px] text-slate-400 mt-0.5">Leave blank for overall monthly budget</p>
+                </div>
+                <div>
                     <label class="block font-semibold text-slate-700 mb-1">Budget Target (₹)*</label>
                     {{ budget_form.amount }}
                 </div>
             </div>
             <div class="mt-6 flex gap-3">
                 <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-sm">
-                    Save Budget
+                    Save Target
                 </button>
                 <button type="button" onclick="closeModal('budgetModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 px-4 rounded-xl">
                     Cancel
@@ -668,7 +782,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: jsonStringify({ question: question })
+                body: JSON.stringify({ question: question })
             });
 
             const data = await response.json();
@@ -719,10 +833,6 @@
             btn.disabled = false;
             spinner.classList.add('hidden');
         }
-    }
-
-    function jsonStringify(obj) {
-        return JSON.stringify(obj);
     }
 
     function escapeHtml(text) {

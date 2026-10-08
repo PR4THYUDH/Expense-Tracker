@@ -1,4 +1,4 @@
-# 💳 FinTrack AI — Intelligent Personal Expense Management
+# 💳 FinSight — Intelligent Personal Finance & Expense Management
 
 [![Django](https://img.shields.io/badge/Django-6.0-092E20?logo=django)](https://www.djangoproject.com/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python)](https://www.python.org/)

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Privacy & Security Architecture — FinTrack AI{% endblock %}
+{% block title %}Privacy & Security Architecture — FinSight AI{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto py-8 sm:py-12">
@@ -26,7 +26,7 @@
 
             <section>
                 <h2 class="text-lg font-bold text-slate-900 mb-2">2. How Anthropic Claude AI is Used</h2>
-                <p>FinTrack AI employs the Anthropic Claude API for three distinct, opt-in assistance capabilities:</p>
+                <p>FinSight AI employs the Anthropic Claude API for three distinct, opt-in assistance capabilities:</p>
                 <ul class="list-disc list-inside mt-2 space-y-2 text-slate-600 ml-2">
                     <li><strong>Receipt Scanning:</strong> When you upload a receipt photo, the image is transmitted directly to Claude's multimodal vision API over encrypted TLS connections solely to extract merchant, date, amounts, and items. The extracted fields are presented for your explicit review and editing before anything is saved.</li>
                     <li><strong>Spending Insights:</strong> To generate advisory insights, our backend aggregates high-level monthly totals and category percentages. We never transmit bank account numbers, passwords, or personal identity numbers.</li>
@@ -52,7 +52,7 @@
                 <a href="{% url 'dashboard' %}" class="text-sm font-semibold text-brand-600 hover:text-brand-700">
                     &larr; Return to Dashboard
                 </a>
-                <span class="text-xs text-slate-400">FinTrack AI Platform</span>
+                <span class="text-xs text-slate-400">FinSight AI Platform</span>
             </section>
 
         </div>

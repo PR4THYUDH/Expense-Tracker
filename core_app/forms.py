@@ -1,5 +1,5 @@
 from django import forms
-from .models import Expense, Budget, CATEGORY_CHOICES
+from .models import Expense, Income, Budget, CATEGORY_CHOICES, INCOME_SOURCE_CHOICES
 from datetime import date
 
 class ExpenseForm(forms.ModelForm):
@@ -46,12 +46,53 @@ class ExpenseForm(forms.ModelForm):
         model = Expense
         fields = ['amount', 'category', 'vendor', 'date', 'description']
 
+
+class IncomeForm(forms.ModelForm):
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 py-2.5 px-3 shadow-sm'
+        }),
+        initial=date.today
+    )
+    source = forms.ChoiceField(
+        choices=INCOME_SOURCE_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 py-2.5 px-3 shadow-sm'
+        })
+    )
+    amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=0.01,
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'placeholder': '0.00',
+            'class': 'w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 py-2.5 px-3 shadow-sm'
+        })
+    )
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'rows': 2,
+            'placeholder': 'Optional source details (e.g. Monthly Salary, Freelance project)...',
+            'class': 'w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 py-2.5 px-3 shadow-sm'
+        })
+    )
+
+    class Meta:
+        model = Income
+        fields = ['amount', 'source', 'date', 'description']
+
+
 class BudgetForm(forms.ModelForm):
     MONTH_CHOICES = [
         (1, 'January'), (2, 'February'), (3, 'March'), (4, 'April'),
         (5, 'May'), (6, 'June'), (7, 'July'), (8, 'August'),
         (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December')
     ]
+    BUDGET_CATEGORY_CHOICES = [('', 'Overall Monthly Budget')] + CATEGORY_CHOICES
+
     month = forms.ChoiceField(
         choices=MONTH_CHOICES,
         widget=forms.Select(attrs={
@@ -64,20 +105,28 @@ class BudgetForm(forms.ModelForm):
         }),
         initial=date.today().year
     )
+    category = forms.ChoiceField(
+        choices=BUDGET_CATEGORY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 py-2 px-3 shadow-sm'
+        })
+    )
     amount = forms.DecimalField(
         max_digits=12,
         decimal_places=2,
         min_value=0.01,
         widget=forms.NumberInput(attrs={
             'step': '0.01',
-            'placeholder': 'Monthly budget amount',
+            'placeholder': 'Budget target amount',
             'class': 'w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 py-2 px-3 shadow-sm'
         })
     )
 
     class Meta:
         model = Budget
-        fields = ['month', 'year', 'amount']
+        fields = ['month', 'year', 'category', 'amount']
+
 
 class ReceiptUploadForm(forms.Form):
     receipt_image = forms.FileField(
