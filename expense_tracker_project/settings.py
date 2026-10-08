@@ -24,7 +24,7 @@ allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '')
 if allowed_hosts_env:
     ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
 else:
-    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver', '.up.railway.app', '.onrender.com']
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver', '.up.railway.app', '.onrender.com', '.prathyudh.dev', 'prathyudh.dev']
 
 # CSRF trusted origins for modern HTTPS cloud deployments
 csrf_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
@@ -34,6 +34,8 @@ else:
     CSRF_TRUSTED_ORIGINS = [
         'https://*.up.railway.app',
         'https://*.onrender.com',
+        'https://*.prathyudh.dev',
+        'https://prathyudh.dev',
         'http://127.0.0.1:8000',
         'http://localhost:8000',
     ]
